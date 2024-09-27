@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CLINIX Healthcare System</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/regression/2.0.1/regression.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f2f5;
+            color: #333;
+        }
+
+        .hidden { display: none !important; }
+        .active { display: block !important; }
+
+        #login-page {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: linear-gradient(135deg, #1e5799 0%,#2989d8 50%,#207cca 51%,#7db9e8 100%);
+        }
+
+        .login-container {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            width: 300px;
+        }
+
+        .login-container h2 {
+            color: #2989d8;
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+
+        #login-form input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        #login-form button {
+            width: 100%;
+            padding: 10px;
+            background-color: #2989d8;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+
+        #login-form button:hover {
+            background-color: #207cca;
+        }
+
+        #login-error {
+            color: #d9534f;
+            text-align: center;
+            margin-top: 10px;
+        }
+
+        #dashboard-page {
+            display: flex;
+            height: 100vh;
+        }
+
+        .sidebar {
+            width: 250px;
+            background-color: #2989d8;
+            color: #fff;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar h1 {
+            color: #ffffff;
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .sidebar nav {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar nav a {
+            color: #fff;
+            padding: 10px;
+            text-decoration: none;
+            margin-bottom: 5px;
+            border-radius: 5px;
+            transition: background 0.3s;
+        }
+
+        .sidebar nav a.active,
+        .sidebar nav a:hover {
+            background-color: #1e5799;
+        }
+
+        .content {
+            flex-grow: 1;
+            padding: 20px;
+            background-color: #ffffff;
+            overflow-y: auto;
+        }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        h2 { color: #2989d8; }
+
+        form label { display: block; margin-top: 15px; }
+        form input, form textarea, form select {
+            width: 100%;
+            padding: 10px;
+            margin-top: 5px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            box-sizing: border-box;
+        }
+
+        form button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            background-color: #2989d8;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        form button:hover { background-color: #1e5799; }
+        
+        canvas {
+            max-width: 100%;
+            margin-top: 20px;
+        }
+
+        .chart-container {
+            position: relative;
+            margin: auto;
+            height: 300px;
+            width: 100%;
+            transition: all 0.3s ease;
+        }
+
+        .chart-container:hover {
+            transform: scale(1.02);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        #notifications {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .notification {
+            background-color: #2989d8;
+            color: white;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            opacity: 0;
+            transition: opacity 0.5s;
+        }
+
+        #live-updates {
+            background-color: #f0f2f5;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+
+        #live-updates h3 {
+            color: #2989d8;
+            margin-top: 0;
+        }
+
+        #updates-list {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        #updates-list li {
+            background-color: white;
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+
+        #updates-list li:hover {
+            transform: translateX(5px);
+            box-shadow: 2px 2px 8px rgba(0,0,0,0.2);
+        }
+
+        @keyframes shake {
+            0% { transform: translateX(0); }
+            25% { transform: translateX(5px); }
+            50% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+            100% { transform: translateX(0); }
+        }
+        .shake {
+            animation: shake 0.5s ease-in-out;
+        }
+    </style>
+</head>
+<body>
+
+<!-- Login Page -->
+<div id="login-page" class="active">
+    <div class="login-container">
+        <h2>Login to CLINIX</h2>
+        <form id="login-form">
+            <input type="text" id="username" name="username" placeholder="Username" required>
+            <input type="password" id="password" name="password" placeholder="Password" required>
+            <button type="submit">Login</button>
+        </form>
+        <p id="login-error" class="hidden">Invalid login credentials. Please try again.</p>
+    </div>
+</div>
+
+<!-- Main Dashboard (hidden initially) -->
+<div id="dashboard-page" class="hidden">
+    <div class="sidebar">
+        <h1>CLINIX</h1>
+        <nav>
+            <a href="#" class="nav-item active" data-tab="overview">Overview</a>
+            <a href="#" class="nav-item" data-tab="appointments">Appointments</a>
+            <a href="#" class="nav-item" data-tab="medicines">Medicines</a>
+            <a href="#" class="nav-item" data-tab="incoming-patients">Incoming Patients</a>
+            <a href="#" class="nav-item" data-tab="medicine-stock">Medicine Stock</a>
+            <a href="#" class="nav-item" data-tab="predictive-analysis">Predictive Analysis</a>
+            <a href="#" class="nav-item" data-tab="profile">Profile</a>
+        </nav>
+    </div>
+
+    <div class="content">
+        <!-- Overview -->
+        <div id="overview" class="tab-content active">
+            <h2>Welcome to CLINIX Dashboard</h2>
+            <p>Here you can manage appointments, order medicines, and track your health.</p>
+            <div class="chart-container">
+                <canvas id="overviewChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Appointments Tab -->
+        <div id="appointments" class="tab-content">
+            <h2>Appointments</h2>
+            <form id="appointment-form">
+                <label for="doctor">Select Doctor:</label>
+                <select id="doctor" required>
+                    <option value="">--Please choose an option--</option>
+                    <option value="dr_smith">Dr. John Smith</option>
+                    <option value="dr_jane">Dr. Jane Doe</option>
+                    <option value="dr_rahul">Dr. Rahul Kapoor</option>
+                </select>
+                
+                <label for="date">Appointment Date:</label>
+                <input type="date" id="date" required>
+                
+                <label for="time">Appointment Time:</label>
+                <select id="time" required></select>
+                
+                <label for="notes">Notes:</label>
+                <textarea id="notes" rows="4" placeholder="Enter any specific concerns..."></textarea>
+                
+                <button type="submit">Book Appointment</button>
+            </form>
+            <div id="appointment-confirmation" class="hidden">
+                <h3>Appointment Booked Successfully!</h3>
+                <p>Your appointment details:</p>
+                <ul id="appointment-details"></ul>
+            </div>
+        </div>
+
+        <!-- Medicines Tab -->
+        <div id="medicines" class="tab-content">
+            <h2>Order Medicines</h2>
+            <form id="medicine-form">
+                <label for="medicine-name">Medicine Name:</label>
+                <input type="text" id="medicine-name" placeholder="Enter medicine name" required>
+                
+                <label for="quantity">Quantity:</label>
+                <input type="number" id="quantity" min="1" placeholder="Enter quantity" required>
+                
+                <button type="submit">Order Medicine</button>
+            </form>
+            <div id="medicine-confirmation" class="hidden">
+                <h3>Medicine Ordered Successfully!</h3>
+                <p>Your order details:</p>
+                <ul id="medicine-details"></ul>
+            </div>
+        </div>
+
+        <!-- Incoming Patients Tab -->
+        <div id="incoming-patients" class="tab-content">
+            <h2>Incoming Patients</h2>
+            <div class="chart-container">
+                <canvas id="incomingPatientsChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Medicine Stock Tab -->
+        <div id="medicine-stock" class="tab-content">
+            <h2>Medicine Stock</h2>
+            <div class="chart-container">
+                <canvas id="medicineStockChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Predictive Analysis Tab -->
+        <div id="predictive-analysis" class="tab-content">
+            <h2>Predictive Analysis</h2>
+            <div class="chart-container">
+                <canvas id="predictiveAnalysisChart"></canvas>
+            </div>
+            <div class="chart-container">
+                <canvas id="linearRegressionChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Profile Tab -->
+        <div id="profile" class="tab-content">
+            <h2>Profile</h2>
+            <p>Patient Name: John Doe</p>
+            <p>Age: 30</p>
+            <p>Gender: Male</p>
+            <p>Blood Group: B+</p>
+            <p>Email: john.doe@example.com</p>
+        </div>
+
+        <!-- Live Updates Section -->
+        <div id="live-updates">
+            <h3>Live Updates</h3>
+            <ul id="updates-list"></ul>
+        </div>
+    </div>
+</div>
+
+<!-- Notifications Container -->
+<div id="notifications"></div>
+
+<script>
+    // Simulate login authentication
+    const validUsername = 'abc123';
+    const validPassword = 'abc123';
+
+    // Event listener for login form submission
+    document.getElementById('login-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
+
+        if (username === validUsername && password === validPassword) {
+            document.getElementById('login-page').classList.add('hidden');
+            document.getElementById('dashboard-page').classList.remove('hidden');
+            initializeCharts();
+            startLiveUpdates();
+            showNotification('Welcome to CLINIX Dashboard!');
+        } else {
+            document.getElementById('login-error').classList.remove('hidden');
+            shakeElement(document.querySelector('.login-container'));
+        }
+    });
+
+    // Event listener for tab switching in the dashboard
+    document.querySelectorAll('.nav-item').forEach(item => {
+        item.addEventListener('click', (e) => {
+            e.preventDefault();
+            const tabId = e.target.getAttribute('data-tab');
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            document.querySelectorAll('.nav-item').forEach(navItem => navItem.classList.remove('active'));
+            e.target.classList.add('active');
+        });
+    });
+
+    // Event listener for appointment form
+    document.getElementById('appointment-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const doctor = document.getElementById('doctor').options[document.getElementById('doctor').selectedIndex].text;
+        const date = document.getElementById('date').value;
+        const time = document.getElementById('time').value;
+        const notes = document.getElementById('notes').value;
+
+        document.getElementById('appointment-details').innerHTML = `
+            <li>Doctor: ${doctor}</li>
+            <li>Date: ${date}</li>
+            <li>Time: ${time}</li>
+            <li>Notes: ${notes}</li>
+        `;
+        document.getElementById('appointment-confirmation').classList.remove('hidden');
+        showNotification('Appointment booked successfully!');
+    });
+
+    // Event listener for medicine form
+    document.getElementById('medicine-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const medicine = document.getElementById('medicine-name').value;
+        const quantity = document.getElementById('quantity').value;
+
+        document.getElementById('medicine-details').innerHTML = `
+            <li>Medicine: ${medicine}</li>
+            <li>Quantity: ${quantity}</li>
+        `;
+        document.getElementById('medicine-confirmation').classList.remove('hidden');
+        showNotification('Medicine ordered successfully!');
+    });
+
+    function initializeCharts() {
+        // Overview Chart
+        const overviewCtx = document.getElementById('overviewChart').getContext('2d');
+        new Chart(overviewCtx, {
+            type: 'bar',
+            data: {
+                labels: ['Appointments', 'Medicines', 'Tests', 'Consultations'],
+                datasets: [{
+                    label: 'Weekly Summary',
+                    data: [12, 19, 3, 5],
+                    backgroundColor: [
+                        'rgba(255, 99, 132, 0.2)',
+                        'rgba(54, 162, 235, 0.2)',
+                        'rgba(255, 206, 86, 0.2)',
+                        'rgba(75, 192, 192, 0.2)'
+                    ],
+                    borderColor: [
+                        'rgba(255, 99, 132, 1)',
+                        'rgba(54, 162, 235, 1)',
+                        'rgba(255, 206, 86, 1)',
+                        'rgba(75, 192, 192, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                },
+                animation: {
+                    duration: 1000,
+                    easing: 'easeInOutQuart'
+                },
+                responsive: true,
+                maintainAspectRatio: false
+            }
+        });
+
+        // Incoming Patients Chart
+        const incomingPatientsCtx = document.getElementById('incomingPatientsChart').getContext('2d');
+        new Chart(incomingPatientsCtx, {
+            type: 'line',
+            data: {
+                labels: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
+                datasets: [{
+                    label: 'Incoming Patients',
+                    data: [65, 59, 80, 81, 56, 55, 40],
+                    fill: false,
+                    borderColor: 'rgb(75, 192, 192)',
+                    tension: 0.1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: {
+                    duration: 1000,
+                    easing: 'easeInOutQuart'
+                }
+            }
+        });
+
+        // Medicine Stock Chart
+        const medicineStockCtx = document.getElementById('medicineStockChart').getContext('2d');
+        new Chart(medicineStockCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Paracetamol', 'Aspirin', 'Ibuprofen', 'Amoxicillin', 'Others'],
+                datasets: [{
+                    label: 'Medicine Stock',
+                    data: [300, 250, 200, 150, 100],
+                    backgroundColor: [
+                        'rgba(255, 99, 132, 0.8)',
+                        'rgba(54, 162, 235, 0.8)',
+                        'rgba(255, 206, 86, 0.8)',
+                        'rgba(75, 192, 192, 0.8)',
+                        'rgba(153, 102, 255, 0.8)'
+                    ]
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: {
+                    duration: 1000,
+                    easing: 'easeInOutQuart'
+                }
+            }
+        });
+
+        // Predictive Analysis Chart
+        const predictiveAnalysisCtx = document.getElementById('predictiveAnalysisChart').getContext('2d');
+        new Chart(predictiveAnalysisCtx, {
+            type: 'bar',
+            data: {
+                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                datasets: [{
+                    label: 'Actual Patients',
+                    data: [65, 59, 80, 81, 56, 55],
+                    backgroundColor: 'rgba(75, 192, 192, 0.6)'
+                }, {
+                    label: 'Predicted Patients',
+                    data: [70, 62, 75, 85, 60, 58],
+                    backgroundColor: 'rgba(255, 99, 132, 0.6)'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: {
+                    duration: 1000,
+                    easing: 'easeInOutQuart'
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+
+        // Linear Regression Chart
+        const linearRegressionCtx = document.getElementById('linearRegressionChart').getContext('2d');
+        const data = [
+            {x: 1, y: 65}, {x: 2, y: 59}, {x: 3, y: 80}, 
+            {x: 4, y: 81}, {x: 5, y: 56}, {x: 6, y: 55}
+        ];
+        const result = regression.linear(data.map(d => [d.x, d.y]));
+        const linearRegressionData = result.points.map(p => ({x: p[0], y: p[1]}));
+
+        new Chart(linearRegressionCtx, {
+            type: 'scatter',
+            data: {
+                datasets: [{
+                    label: 'Actual Data',
+                    data: data,
+                    backgroundColor: 'rgba(75, 192, 192, 0.6)'
+                }, {
+                    label: 'Linear Regression',
+                    data: linearRegressionData,
+                    type: 'line',
+                    borderColor: 'rgba(255, 99, 132, 1)',
+                    fill: false
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: {
+                    duration: 1000,
+                    easing: 'easeInOutQuart'
+                },
+                scales: {
+                    x: {
+                        type: 'linear',
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+    }
+
+    function startLiveUpdates() {
+        const updates = [
+            "New patient registered: Sarah Johnson",
+            "Appointment confirmed with Dr. Smith for tomorrow at 2 PM",
+            "Medicine stock alert: Paracetamol running low",
+            "Lab results for patient John Doe are ready",
+            "Emergency case incoming: ETA 5 minutes"
+        ];
+
+        const updatesList = document.getElementById('updates-list');
+        let index = 0;
+
+        setInterval(() => {
+            if (index < updates.length) {
+                const li = document.createElement('li');
+                li.textContent = updates[index];
+                updatesList.prepend(li);
+                index++;
+            } else {
+                index = 0;
+            }
+        }, 5000); // New update every 5 seconds
+    }
+
+    function showNotification(message) {
+        const notification = document.createElement('div');
+        notification.className = 'notification';
+        notification.textContent = message;
+        document.getElementById('notifications').appendChild(notification);
+
+        // Fade in
+        setTimeout(() => {
+            notification.style.opacity = '1';
+        }, 100);
+
+        // Remove after 3 seconds
+        setTimeout(() => {
+            notification.style.opacity = '0';
+            setTimeout(() => {
+                notification.remove();
+            }, 500);
+        }, 3000);
+    }
+
+    function shakeElement(element) {
+        element.classList.add('shake');
+        setTimeout(() => {
+            element.classList.remove('shake');
+        }, 500);
+    }
+
+    // Hover effect for chart containers
+    document.querySelectorAll('.chart-container').forEach(container => {
+        container.addEventListener('mouseover', () => {
+            container.style.transform = 'scale(1.02)';
+            container.style.boxShadow = '0 4px 8px rgba(0,0,0,0.1)';
+        });
+        container.addEventListener('mouseout', () => {
+            container.style.transform = 'scale(1)';
+            container.style.boxShadow = 'none';
+        });
+    });
+
+    // Dynamic Appointment Scheduling
+    function initializeAppointmentScheduler() {
+        const doctorSelect = document.getElementById('doctor');
+        const dateInput = document.getElementById('date');
+        const timeSelect = document.getElementById('time');
+
+        doctorSelect.addEventListener('change', updateAvailableTimes);
+        dateInput.addEventListener('change', updateAvailableTimes);
+
+        function updateAvailableTimes() {
+            // Simulated available times
+            const availableTimes = ['09:00', '10:00', '11:00', '14:00', '15:00', '16:00'];
+            timeSelect.innerHTML = '';
+            availableTimes.forEach(time => {
+                const option = document.createElement('option');
+                option.value = time;
+                option.textContent = time;
+                timeSelect.appendChild(option);
+            });
+        }
+
+        updateAvailableTimes();
+    }
+
+    // Real-time Medicine Stock Updates
+    function initializeMedicineStock() {
+        const medicineStockChart = Chart.getChart("medicineStockChart");
+        
+        setInterval(() => {
+            const newData = medicineStockChart.data.datasets[0].data.map(
+                value => Math.max(0, value + Math.floor(Math.random() * 21) - 10)
+            );
+            medicineStockChart.data.datasets[0].data = newData;
+            medicineStockChart.update();
+        }, 5000);
+    }
+
+    // Interactive Patient Queue
+    function initializePatientQueue() {
+        const queueContainer = document.createElement('div');
+        queueContainer.id = 'patient-queue';
+        queueContainer.innerHTML = `
+            <h3>Patient Queue</h3>
+            <ul id="queue-list"></ul>
+        `;
+        document.getElementById('incoming-patients').appendChild(queueContainer);
+
+        const queueList = document.getElementById('queue-list');
+        const patients = ['John Doe', 'Jane Smith', 'Bob Johnson', 'Alice Brown'];
+
+        function updateQueue() {
+            queueList.innerHTML = '';
+            patients.forEach((patient, index) => {
+                const li = document.createElement('li');
+                li.textContent = `${index + 1}. ${patient}`;
+                li.draggable = true;
+                li.addEventListener('dragstart', handleDragStart);
+                li.addEventListener('dragover', handleDragOver);
+                li.addEventListener('drop', handleDrop);
+                queueList.appendChild(li);
+            });
+        }
+
+        function handleDragStart(e) {
+            e.dataTransfer.setData('text/plain', e.target.textContent);
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            const draggedPatient = e.dataTransfer.getData('text').split('. ')[1];
+            const targetPatient = e.target.textContent.split('. ')[1];
+            const draggedIndex = patients.indexOf(draggedPatient);
+            const targetIndex = patients.indexOf(targetPatient);
+            patients.splice(draggedIndex, 1);
+            patients.splice(targetIndex, 0, draggedPatient);
+            updateQueue();
+        }
+
+        updateQueue();
+    }
+
+    // Interactive Notifications
+    function enhanceNotifications() {
+        const notificationsContainer = document.getElementById('notifications');
+        notificationsContainer.addEventListener('click', (e) => {
+            if (e.target.classList.contains('notification')) {
+                e.target.remove();
+            }
+        });
+    }
+
+    // Predictive Analysis Interaction
+    function enhancePredictiveAnalysis() {
+        const predictiveAnalysisChart = Chart.getChart("predictiveAnalysisChart");
+        const linearRegressionChart = Chart.getChart("linearRegressionChart");
+
+        document.getElementById('predictive-analysis').insertAdjacentHTML('beforeend', `
+            <div>
+                <label for="prediction-month">Predict patients for month:</label>
+                <input type="number" id="prediction-month" min="1" max="12" value="7">
+                <button id="predict-button">Predict</button>
+            </div>
+        `);
+
+        document.getElementById('predict-button').addEventListener('click', () => {
+            const month = parseInt(document.getElementById('prediction-month').value);
+            const prediction = Math.floor(Math.random() * 30) + 50; // Simulated prediction
+
+            predictiveAnalysisChart.data.labels.push(`Month ${month}`);
+            predictiveAnalysisChart.data.datasets[0].data.push(null);
+            predictiveAnalysisChart.data.datasets[1].data.push(prediction);
+            predictiveAnalysisChart.update();
+
+            // Update linear regression
+            const newData = linearRegressionChart.data.datasets[0].data;
+            newData.push({x: month, y: prediction});
+            const result = regression.linear(newData.map(d => [d.x, d.y]));
+            linearRegressionChart.data.datasets[1].data = result.points.map(p => ({x: p[0], y: p[1]}));
+            linearRegressionChart.update();
+        });
+    }
+
+    // Initialize new interactive features
+    document.addEventListener('DOMContentLoaded', function() {
+        initializeAppointmentScheduler();
+        initializeMedicineStock();
+        initializePatientQueue();
+        enhanceNotifications();
+        enhancePredictiveAnalysis();
+    });
+</script>
+</body>
+</html>
